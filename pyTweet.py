@@ -6,19 +6,27 @@
 # Figure out how to parse JSON to present friends timeline
 # Write a function that spits out one tweet from a timeline
 
+# Figure out how to use subprocess to go to an editor and use that for the tweet
+# Look into py2app. 
+# 
+
 import sys
-from optparse import OptionParser
+import os
+import optparse
 import urllib2
-from pprint import pprint
 import simplejson
 import datetime
 import time
 import ConfigParser
+from pprint import pprint
+
+# Set the location for the configfile.
+config_path = os.path.expanduser('~/.tweetrc')
 
 # Set up the parser object to read command line options
 # The value of the options are in options.DEST
 
-parser = OptionParser()
+parser = optparse.OptionParser()
 parser.add_option("-t", "--tweet", help="The text of your status update on Twitter.com",
 			action="store", dest="update")
 parser.add_option("-u", "--username", help="Your username or email address on Twitter.com",
@@ -29,6 +37,14 @@ parser.add_option("-a", "--all", help="View Twitter.com's public timeline",
 			action="store_true", dest="timeline")
 
 (options, args) = parser.parse_args()
+
+'''
+if os.environ.__contains__("TWEET_EDITOR"):
+        print "you've got an editor"
+else:
+        print "no editor"
+        '''
+# pprint(os.environ) #get the home directory from here
 
 # Provide a URL and get in return a response
 def make_request(url, data=None):
@@ -79,24 +95,36 @@ def parse_twitter_date(timestamp):
 
 # Take time in seconds and convert to minutes, hours, seconds as appropriate.
 # Let this take either the string or the seconds, still the same clean format.
+# Figure out how to handle plural vs. singular units
 def format_time(seconds):
-        if seconds <= 60: # under a minute
+        if seconds < 60: # under a minute
                 return str(seconds) + " seconds"
-        elif seconds <= 3600: # under an hour
+        elif seconds < 3600: # under an hour
                 return str(seconds / 60) + " minutes"
-        elif seconds <= 216000: # under a day
+        elif seconds < 86400: # under a day
                 return str((seconds / 60) / 60) + " hours"
-        elif seconds > 5184000:
-                return str(((seconds / 60) / 60 ) / 12) + " days"
+        elif seconds >= 86400: # over a day ago
+                return str(((seconds / 60) / 60 ) / 24) + " days"
         else:
                 return seconds
 
+def get_username(userid):
+        response_file = make_request("http://twitter.com/users/show/" + str(userid) + ".json")
+        response_parsed = simplejson.load(response_file)
+        return response_parsed['name']
+
+
+
+
+'''
 now = int(time.mktime(time.gmtime()))
 #now = time.gmtime(now)
 for i in json:
 #       pprint(i)
        print print_tweet(i)
-       print format_time(now - parse_twitter_date(i['created_at']))
+       diff = now - parse_twitter_date(i['created_at'])
+       print str(format_time(diff)) + " ago"
+       print (diff)
        print i['created_at']
        print "\n"
 
@@ -105,16 +133,28 @@ print date
 date = time.strptime(date, "%a %b %d %H:%M:%S +0000 %Y")
 print date
 date = int(time.mktime(date))
+'''
 
+""" # Print what's in the config file
+config = ConfigParser.ConfigParser()
+print config.read(".pytweetrc")
+credentials = config.items('authentication')
+print credentials
+"""
 
-f = ConfigParser.ConfigParser()
-print f.read(".pytweetrc")
-print f.items('authentication')
+if options.username and options.password:
+	if os.path.isfile(config_path) == False:
+	# if file doesn't exist write it with cli options:
+		config_file = open(config_path, 'w')
+		f = ConfigParser.ConfigParser()
+		f.add_section('authentication')
+		f.set('authentication','username', options.username)
+		f.set('authentication','password', options.password)
+		f.write(config_file)
+		config_file.close()
 
-if options.username and options.password and options.store:
-        my_config = file('pytweetrc', 'w')
-        f = ConfigParser.ConfigParser()
-        f.add_section('authentication')
-        f.set('authentication','username','options.username')
-        f.set('authentication','password','options.password')
-        f.write(config)
+	# if file does exist, parse and reads what's there:
+
+# if option f, show friends timeline
+
+# if option f, with remaining argument, raise error

@@ -8,11 +8,18 @@
 
 # Figure out how to use subprocess to go to an editor and use that for the tweet
 # Look into py2app. 
-# 
+
+# Build up each tweet as an array with user (get_user), update (bold?) and date (formatted)
+
+# What I want this program to do: default: tweet, -l list the friends timeline 
+# with optional page argument, -l a particular user
+
+# Check how long the message is. 
 
 import sys
 import os
 import optparse
+import urllib
 import urllib2
 import simplejson
 import datetime
@@ -22,29 +29,32 @@ from pprint import pprint
 
 # Set the location for the configfile.
 config_path = os.path.expanduser('~/.tweetrc')
+update_url = "http://twitter.com/statuses/update.xml"
 
 # Set up the parser object to read command line options
 # The value of the options are in options.DEST
 
-parser = optparse.OptionParser()
-parser.add_option("-t", "--tweet", help="The text of your status update on Twitter.com",
-			action="store", dest="update")
+usage = "Simply enter %prog to begin editing an update in $TWEET_EDITOR. If $TWEET_EDITOR is not available, $EDITOR will be used. Alternately, specify your update as an argument on the command line.\n"
+usage += 'Use the "-l" option to dislpay your friends timeline, or specify "-l USER" for a particular user\'s timeline.' + "\n"
+usage += "pytweet [-u USERNAME] [-p password] [UPDATE]\n"
+usage += "pytweet -l [USER]"
+parser = optparse.OptionParser(usage)
 parser.add_option("-u", "--username", help="Your username or email address on Twitter.com",
 			action="store", dest="username")
 parser.add_option("-p", "--password", help="Your password on Twitter.com", dest="password")
-parser.add_option("-s", "--store", help="Save the login and password data to ~/.pytweetrc to use next time", action="store_true", dest="store")
-parser.add_option("-a", "--all", help="View Twitter.com's public timeline",
-			action="store_true", dest="timeline")
+parser.add_option("-l", "--list", help="Display your friends timeline, or specify a user to display their updates.", action="store", dest="list", metavar="USER")
 
 (options, args) = parser.parse_args()
 
-'''
+
+''' # Testing for an editor environment variable
 if os.environ.__contains__("TWEET_EDITOR"):
-        print "you've got an editor"
+        print "there's a tweet editor"
+elif os.environ.__contains__("EDITOR"):
+	print "generic editor"
 else:
-        print "no editor"
-        '''
-# pprint(os.environ) #get the home directory from here
+	print "no editor"
+'''
 
 # Provide a URL and get in return a response
 def make_request(url, data=None):
@@ -66,27 +76,70 @@ def print_tweet(tweet):
         return tweet['user']['name'] + ": " + tweet['text'] +"\n" + tweet['created_at'] + " in reply to " + str(tweet['in_reply_to_user_id']) + "\n"
 
 # Show the public timeline.
-if options.timeline:
-	url = "http://twitter.com/statuses/public_timeline.json"
-	response = make_request(url)
-	print response.read()
+def public():
+	if options.timeline:
+		url = "http://twitter.com/statuses/public_timeline.json"
+		response = make_request(url)
+		print response.read()
+
+# A function to take care of extracting l/p with logic.
+# ? Would it be cleaner to use ConfigParser defaults rather than this elaborate logic? Probably not. 
+# Make this return an associative array of l/p in addition to printing.
+# Read about error handling
+
+def get_login():
+	if os.path.isfile(config_path) == False: # No config file
+		if options.username and options.password: # Command line options
+			print ">>> Username and password specified on command line. Saving to .twitterrc."
+			config_file = open(config_path, 'w')
+			f = ConfigParser.ConfigParser()
+			f.add_section('authentication')
+			f.set('authentication','username', options.username)
+			f.set('authentication','password', options.password)
+			f.write(config_file)
+			config_file.close()
+			return { 'username': options.username, 'password': options.password }
+		elif options.username or options.password: # One but not the other
+			print ">>> You must provide both a login and a password, or neither."
+		else: # No command line options
+			print ">>> No username and password specified and no config file available. No tweet."
+			return False;
+	elif  os.path.isfile(config_path) == True: # We have a config file
+		if options.username and options.password: # With command line options
+			print ">>> Username and password specified on command line, overriding .twitterrc"
+			return { 'username': options.username, 'password': options.password }
+		elif options.username or options.password: # One but not the other
+			print ">>> You must provide both a login and a password, or neither."
+		else:
+			print ">>> Reading username and password from .twitterrc"
+			config_file = open(config_path, 'r')
+			f = ConfigParser.ConfigParser()
+			f.read(config_path)
+			username = f.get('authentication', 'username')
+			password = f.get('authentication', 'password')
+			config_file.close()
+			return { 'username': username, 'password': password }
+	else:
+		print "Another combo altogether?"
+
+print get_login()
 
 # Tweet!
-if options.update:
-	url = "http://twitter.com/statuses/update.xml"
+def tweet(status):
 	password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None,url,options.username,options.password)
+        password_manager.add_password(None, update_url, options.username, options.password)
         handler = urllib2.HTTPBasicAuthHandler(password_manager)
         opener = urllib2.build_opener(handler)
         urllib2.install_opener(opener)
-	data = "status=" + options.update
+	data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
 	response = make_request(url,data)
         if response:
                 print response.read()
 
+""" # Test json parsing
 file = open('timeline.json')
 json = simplejson.load(file)
-
+"""
 
 # Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter uses
 # and convert that to time since epoch in seconds.
@@ -112,9 +165,6 @@ def get_username(userid):
         response_file = make_request("http://twitter.com/users/show/" + str(userid) + ".json")
         response_parsed = simplejson.load(response_file)
         return response_parsed['name']
-
-
-
 
 '''
 now = int(time.mktime(time.gmtime()))
@@ -142,18 +192,6 @@ credentials = config.items('authentication')
 print credentials
 """
 
-if options.username and options.password:
-	if os.path.isfile(config_path) == False:
-	# if file doesn't exist write it with cli options:
-		config_file = open(config_path, 'w')
-		f = ConfigParser.ConfigParser()
-		f.add_section('authentication')
-		f.set('authentication','username', options.username)
-		f.set('authentication','password', options.password)
-		f.write(config_file)
-		config_file.close()
-
-	# if file does exist, parse and reads what's there:
 
 # if option f, show friends timeline
 

@@ -29,7 +29,9 @@ from pprint import pprint
 
 # Set the location for the configfile.
 config_path = os.path.expanduser('~/.tweetrc')
-update_url = "http://twitter.com/statuses/update.xml"
+update_url = "http://twitter.com/statuses/update.json"
+friends_timeline_url = "http://twitter.com/statuses/friends_timeline.json"
+user_timeline_url = "http://twitter.com/statuses/user_timeline.json"
 
 # Set up the parser object to read command line options
 # The value of the options are in options.DEST
@@ -42,19 +44,20 @@ parser = optparse.OptionParser(usage)
 parser.add_option("-u", "--username", help="Your username or email address on Twitter.com",
 			action="store", dest="username")
 parser.add_option("-p", "--password", help="Your password on Twitter.com", dest="password")
-parser.add_option("-l", "--list", help="Display your friends timeline, or specify a user to display their updates.", action="store", dest="list", metavar="USER")
+parser.add_option("-l", "--list", help="Display your friends timeline, or specify a user to display their updates.", action="store_true", dest="list", metavar="USER")
 
 (options, args) = parser.parse_args()
 
 
-''' # Testing for an editor environment variable
+"""
+ # Testing for an editor environment variable
 if os.environ.__contains__("TWEET_EDITOR"):
         print "there's a tweet editor"
 elif os.environ.__contains__("EDITOR"):
 	print "generic editor"
 else:
 	print "no editor"
-'''
+"""
 
 # Provide a URL and get in return a response
 def make_request(url, data=None):
@@ -122,24 +125,48 @@ def get_login():
 	else:
 		print "Another combo altogether?"
 
-print get_login()
 
 # Tweet!
 def tweet(status):
+	login = get_login()
 	password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, update_url, options.username, options.password)
+        password_manager.add_password(None, update_url, login['username'], login['password'])
         handler = urllib2.HTTPBasicAuthHandler(password_manager)
         opener = urllib2.build_opener(handler)
         urllib2.install_opener(opener)
 	data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
-	response = make_request(url,data)
+	response = make_request(update_url,data)
         if response:
-                print response.read()
+                output = response.read() # This captures it but also makes the tweet happen
+		print output
 
-""" # Test json parsing
+# Takes a tweet and processes it
+def format_tweet(tweet):
+	return pprint(tweet)
+
+
+# With a straggler argument, two things could be happening. Either we are trying
+# to tweet or we are providing an argument to --list, meaning we want to show 
+# a particular user's timeline.
+if args:
+	if options.list == None:
+		tweet(args[0])
+	elif options.list == True:
+		get_user_timeline()
+
+
+
+
+# Test json parsing
 file = open('timeline.json')
 json = simplejson.load(file)
-"""
+print json[1]['text']
+"""i = 1
+for tweet in json:
+	print i
+	print tweet
+	i = i + 1
+	"""
 
 # Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter uses
 # and convert that to time since epoch in seconds.
@@ -166,6 +193,36 @@ def get_username(userid):
         response_parsed = simplejson.load(response_file)
         return response_parsed['name']
 
+def get_user_timeline():
+	return "hi"
+
+
+
+#if options.list:
+def get_friends_timeline():
+	login = get_login()
+	#timeline = make_request(friends_timeline_url)
+	password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        password_manager.add_password(None, friends_timeline_url, login['username'], login['password'])
+        handler = urllib2.HTTPBasicAuthHandler(password_manager)
+        opener = urllib2.build_opener(handler)
+        urllib2.install_opener(opener)
+	# data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
+	response = make_request(friends_timeline_url)
+	json = simplejson.load(response)
+	print ">>> Getting friends timeline"
+	pprint(json)
+
+def get_user_timeline(user):
+	timeline = make_request(user_timeline_url, "id=" + user)
+	json = simplejson.load(timeline)
+	print ">>> Printing user timeline"
+	print json
+
+
+
+
+
 '''
 now = int(time.mktime(time.gmtime()))
 #now = time.gmtime(now)
@@ -184,15 +241,3 @@ date = time.strptime(date, "%a %b %d %H:%M:%S +0000 %Y")
 print date
 date = int(time.mktime(date))
 '''
-
-""" # Print what's in the config file
-config = ConfigParser.ConfigParser()
-print config.read(".pytweetrc")
-credentials = config.items('authentication')
-print credentials
-"""
-
-
-# if option f, show friends timeline
-
-# if option f, with remaining argument, raise error

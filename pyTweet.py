@@ -128,40 +128,38 @@ def get_login():
 
 # Tweet!
 def tweet(status):
-	login = get_login()
-	password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, update_url, login['username'], login['password'])
-        handler = urllib2.HTTPBasicAuthHandler(password_manager)
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
-	data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
-	response = make_request(update_url,data)
-        if response:
-                output = response.read() # This captures it but also makes the tweet happen
-		print output
+	if len(status) <= 160:
+		login = get_login()
+		password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+		password_manager.add_password(None, update_url, login['username'], login['password'])
+		handler = urllib2.HTTPBasicAuthHandler(password_manager)
+		opener = urllib2.build_opener(handler)
+		urllib2.install_opener(opener)
+		data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
+		response = make_request(update_url,data)
+		if response:
+			output = response.read() # This captures it but also makes the tweet happen
+			print output
+	else:
+		length = len(status)
+		print "Your tweet is " + str(length) + " characters too long."
 
-# Takes a tweet and processes it
-def format_tweet(tweet):
-	return pprint(tweet)
-
-
-# With a straggler argument, two things could be happening. Either we are trying
-# to tweet or we are providing an argument to --list, meaning we want to show 
-# a particular user's timeline.
-if args:
-	if options.list == None:
-		tweet(args[0])
-	elif options.list == True:
-		get_user_timeline()
-
+# Takes a JSON object (or a string) and pretty prints it.
+def format_tweets(tweets):
+	output = str()
+	for tweet in tweets:
+		output += tweet['user']['screen_name'] + "\t"
+		output += tweet['text'] + "\t"
+		output += tweet['created_at'] + "\n\n"
+	return output
 
 
-
+"""
 # Test json parsing
 file = open('timeline.json')
 json = simplejson.load(file)
 print json[1]['text']
-"""i = 1
+i = 1
 for tweet in json:
 	print i
 	print tweet
@@ -193,15 +191,10 @@ def get_username(userid):
         response_parsed = simplejson.load(response_file)
         return response_parsed['name']
 
-def get_user_timeline():
-	return "hi"
-
-
-
-#if options.list:
+""" Get a user's friend's timeline. Look in .twitterrc or use cli options """
 def get_friends_timeline():
 	login = get_login()
-	#timeline = make_request(friends_timeline_url)
+	timeline = make_request(friends_timeline_url)
 	password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, friends_timeline_url, login['username'], login['password'])
         handler = urllib2.HTTPBasicAuthHandler(password_manager)
@@ -215,11 +208,19 @@ def get_friends_timeline():
 
 def get_user_timeline(user):
 	timeline = make_request(user_timeline_url, "id=" + user)
-	json = simplejson.load(timeline)
+	tweets = simplejson.load(timeline)
 	print ">>> Printing user timeline"
-	print json
+	print format_tweets(tweets) # Send the text out to be pretty printed
 
 
+# With a straggler argument, two things could be happening. Either we are trying
+# to tweet or we are providing an argument to --list, meaning we want to show 
+# a particular user's timeline.
+if args:
+	if options.list == None:
+		tweet(args[0])
+	elif options.list == True:
+		get_user_timeline(args[0])
 
 
 

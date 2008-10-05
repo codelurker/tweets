@@ -3,6 +3,10 @@
 # 1. Figure out how to use subprocess to go to an editor and use that for the tweet
 # 2. Check how long the message is. 
 # 3. Use password prompt instead of using command line
+# 4. Set timeout for make_request, so it doesn't just go on and on.
+# 5. Why doesn't it save my l/p?
+# 6. Redo the whole thing with Twitter.py (branch)
+# 7. Redo the whole thing in ncurser (branch)
 
 import sys
 import os
@@ -22,7 +26,8 @@ config_path = os.path.expanduser('~/.tweetsrc')
 # The API urls
 update_url = "http://twitter.com/statuses/update.json"
 friends_timeline_url = "http://twitter.com/statuses/friends_timeline.json"
-user_timeline_url = "http://twitter.com/statuses/user_timeline.json"
+# This one must be suffixed with usernamexyz.json
+user_timeline_url = "http://twitter.com/statuses/user_timeline/"
 
 usage = "Simply enter %prog to begin editing an update in $TWEET_EDITOR. If $TWEET_EDITOR is not available, $EDITOR will be used. Alternately, specify your update as an argument on the command line.\n"
 usage += 'Use the "-l" option to dislpay your friends timeline, or specify "-l USER" for a particular user\'s timeline.' + "\n"
@@ -39,44 +44,37 @@ parser.add_option("-l", "--list", help="Display your friends timeline, or specif
 (options, args) = parser.parse_args()
 
 
-"""
- # Testing for an editor environment variable
-if os.environ.__contains__("TWEET_EDITOR"):
-        print "there's a tweet editor"
-elif os.environ.__contains__("EDITOR"):
-    print "generic editor"
-else:
-    print "no editor"
-"""
-
-"""
-TEMPDIR = os.environ['TMPDIR']
-print TEMPDIR
-"""
+# # Testing for an editor environment variable
+#if os.environ.__contains__("TWEET_EDITOR"):
+#        print "there's a tweet editor"
+#elif os.environ.__contains__("EDITOR"):
+#    print "generic editor"
+#else:
+#    print "no editor"
 
 
-"""
-If there's no tweets_update in TMPDIR, open the editor process. If it's there,
-fire it up. After the tweet, if it is successful, delete the file. If the
-tweet is not successful, leave the file so that the next invocation of tweets
-will fire it up.
+#TEMPDIR = os.environ['TMPDIR']
+#print TEMPDIR
 
-Should I do this with the tempfile module to let Python handle all of it or
-should I name the file explicitly and keep it in a TMPDIR.
-"""
 
-"""
-class MyConfigParser(ConfigParser.ConfigParser):
-    def set_comment(self, section, value, comment_character="#"):
-        if not section or section == self.DEFAULTSECT:
-            sectdict = self._defaults
-        else:
-            try:
-                sectdict = self._sections[section]
-            except KeyError:
-                raise NoSectionError(section)
-        sectdict[self.optionxform(option)] = comment_character + value
-        """
+#If there's no tweets_update in TMPDIR, open the editor process. If it's there,
+#fire it up. After the tweet, if it is successful, delete the file. If the
+#tweet is not successful, leave the file so that the next invocation of tweets
+#will fire it up.
+
+#Should I do this with the tempfile module to let Python handle all of it or
+#should I name the file explicitly and keep it in a TMPDIR.
+
+#class MyConfigParser(ConfigParser.ConfigParser):
+#    def set_comment(self, section, value, comment_character="#"):
+#        if not section or section == self.DEFAULTSECT:
+#            sectdict = self._defaults
+#        else:
+#            try:
+#                sectdict = self._sections[section]
+#            except KeyError:
+#                raise NoSectionError(section)
+#        sectdict[self.optionxform(option)] = comment_character + value
 
 
 def terminal_width():
@@ -111,17 +109,17 @@ def make_request(url, data=None, need_auth=None):
         handler = urllib2.HTTPBasicAuthHandler(password_manager)
         opener = urllib2.build_opener(handler)
         urllib2.install_opener(opener)
-        try:
-                response = urllib2.urlopen(req)
-        except IOError, e:
-            if hasattr(e, 'reason'):
-                print 'We failed to reach a server.'
-                print 'Reason: ', e.reason
-            elif hasattr(e, 'code'):
-                print 'The server couldn\'t fulfill the request.'
-                print 'Error code: ', e.code
-        else:
-                return response
+    try:
+            response = urllib2.urlopen(req)
+    except IOError, e:
+        if hasattr(e, 'reason'):
+            print 'We failed to reach a server.'
+            print 'Reason: ', e.reason
+        elif hasattr(e, 'code'):
+            print 'The server couldn\'t fulfill the request.'
+            print 'Error code: ', e.code
+    else:
+            return response
 
 formatter = TextFormatter.TextFormatter((
     {'width': 17},
@@ -141,7 +139,7 @@ def public():
 
 def store_login(username, password):
     config_file = open(config_path, 'w')
-    f = ConfigParser.MyConfigParser()
+    f = ConfigParser.ConfigParser()
     f.add_section('authentication')
     f.set('authentication','username', options.username)
     f.set('authentication','password', options.password)
@@ -239,10 +237,13 @@ def get_friends_timeline():
 
 def get_user_timeline(user):
     """ Get a user's timeline """
-    timeline = make_request(user_timeline_url, "id=" + user)
+    timeline = make_request(user_timeline_url + user + ".json")
+    print user
+    print timeline
     tweets = simplejson.load(timeline)
     print ">>> Printing user timeline"
     print format_tweets(tweets) # Send the text out to be pretty printed
+
 
 # With a straggler argument, two things could be happening. Either we are trying
 # to tweet or we are providing an argument to --list, meaning we want to show 

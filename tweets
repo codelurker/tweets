@@ -1,20 +1,8 @@
 #!/usr/bin/python
-# Todo: write function that takes care of authentication
-# Function for authentication based on options or config file
-  # If no l/p given, read from config file. If no config file available, exit with error. If store given with no l/p, exit with error. If store given with l/p, store to file
-
-# Figure out how to parse JSON to present friends timeline
-# Write a function that spits out one tweet from a timeline
-
-# Figure out how to use subprocess to go to an editor and use that for the tweet
-# Look into py2app. 
-
-# Build up each tweet as an array with user (get_user), update (bold?) and date (formatted)
-
-# What I want this program to do: default: tweet, -l list the friends timeline 
-# with optional page argument, -l a particular user
-
-# Check how long the message is. 
+# TODO:
+# 1. Figure out how to use subprocess to go to an editor and use that for the tweet
+# 2. Check how long the message is. 
+# 3. Use password prompt instead of using command line
 
 import sys
 import os
@@ -77,6 +65,20 @@ Should I do this with the tempfile module to let Python handle all of it or
 should I name the file explicitly and keep it in a TMPDIR.
 """
 
+"""
+class MyConfigParser(ConfigParser.ConfigParser):
+    def set_comment(self, section, value, comment_character="#"):
+        if not section or section == self.DEFAULTSECT:
+            sectdict = self._defaults
+        else:
+            try:
+                sectdict = self._sections[section]
+            except KeyError:
+                raise NoSectionError(section)
+        sectdict[self.optionxform(option)] = comment_character + value
+        """
+
+
 def terminal_width():
     """Return estimated terminal width."""
     # Thanks to gutworth in #python on Freenode
@@ -100,10 +102,9 @@ def terminal_width():
     return width
 
 
-def make_request(url, data=None, need_auth=False):
+def make_request(url, data=None, need_auth=None):
     req = urllib2.Request(url, data)
     if need_auth == True:
-        print ">>> We need auth"
         login = get_login()
         password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, url, login['username'], login['password'])
@@ -140,10 +141,15 @@ def public():
 
 def store_login(username, password):
     config_file = open(config_path, 'w')
-    f = ConfigParser.ConfigParser()
+    f = ConfigParser.MyConfigParser()
     f.add_section('authentication')
     f.set('authentication','username', options.username)
     f.set('authentication','password', options.password)
+    f.add_section('output')
+    f.set('output', 'left', '20')
+    f.set('output', 'left', '20')
+    f.set('output', 'middle', '60')
+    f.set('output', 'right', '20')
     f.write(config_file)
     config_file.close()
     return { 'username': options.username, 'password': options.password }
@@ -152,7 +158,7 @@ def get_login():
     """ A function to take care of extracting l/p with logic """
     if os.path.isfile(config_path) == False: # No config file
         if options.username and options.password: # Command line options
-            print ">>> Username and password specified on command line. Saving to .twitterrc."
+            print ">>> Username and password specified on command line. Saving to .tweetsrc."
             return store_login(options.username, options.password)
         elif options.username or options.password: # One but not the other
             print ">>> You must provide both a login and a password, or neither."
@@ -161,12 +167,12 @@ def get_login():
             return False;
     elif  os.path.isfile(config_path) == True: # We have a config file
         if options.username and options.password: # With command line options
-            print ">>> Username and password specified on command line, overriding .twitterrc"
+            print ">>> Username and password specified on command line, overriding .tweetsrc"
             return { 'username': options.username, 'password': options.password }
         elif options.username or options.password: # One but not the other
             print ">>> You must provide both a login and a password, or neither."
         else:
-            print ">>> Reading username and password from .twitterrc"
+            print ">>> Reading username and password from .tweetsrc"
             config_file = open(config_path, 'r')
             f = ConfigParser.ConfigParser()
             f.read(config_path)
@@ -180,20 +186,16 @@ def get_login():
 def tweet(status):
     """ Tweet! (Update user's status on Twitter.com) """
     if len(status) <= 160:
-        login = get_login()
-        password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, update_url, login['username'], login['password'])
-        handler = urllib2.HTTPBasicAuthHandler(password_manager)
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
         data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
-        response = make_request(update_url,data)
+        response = make_request(update_url, data, True)
         if response:
             output = response.read() # This captures it but also makes the tweet happen
             print output
+        else:
+            print "no http response?"
     else:
         length = len(status)
-        print "Your tweet is " + str(length) + " characters too long."
+        print "Your tweet is " + str(length - 160) + " characters too long."
 
 def format_tweets(tweets):
     """ Takes a JSON object (or a string) and pretty prints it. """
@@ -230,10 +232,10 @@ def get_username(userid):
         return response_parsed['name']
 
 def get_friends_timeline():
-    """ Get a user's friends timeline. Look in .twitterrc or use cli options """
+    """ Get a user's friends timeline """
     response = make_request(friends_timeline_url, need_auth=True)
     json = simplejson.load(response)
-    return json
+    return format_tweets(json)
 
 def get_user_timeline(user):
     """ Get a user's timeline """
@@ -253,26 +255,5 @@ if args:
 elif options.list:
     print ">>> Getting your friends timeline..."
     print get_friends_timeline()
-
-
-
-'''
-now = int(time.mktime(time.gmtime()))
-#now = time.gmtime(now)
-for i in json:
-#       pprint(i)
-       print print_tweet(i)
-       diff = now - parse_twitter_date(i['created_at'])
-       print str(format_time(diff)) + " ago"
-       print (diff)
-       print i['created_at']
-       print "\n"
-
-date = json[-2]['created_at']
-print date
-date = time.strptime(date, "%a %b %d %H:%M:%S +0000 %Y")
-print date
-date = int(time.mktime(date))
-'''
 
 # vim: expandtab sw=4 ts=4 sts=4

@@ -76,7 +76,6 @@ parser.add_option("-l", "--list", help="Display your friends timeline, or specif
 #                raise NoSectionError(section)
 #        sectdict[self.optionxform(option)] = comment_character + value
 
-
 def terminal_width():
     """Return estimated terminal width."""
     # Thanks to gutworth in #python on Freenode
@@ -99,7 +98,6 @@ def terminal_width():
 
     return width
 
-
 def make_request(url, data=None, need_auth=None):
     req = urllib2.Request(url, data)
     if need_auth == True:
@@ -121,21 +119,9 @@ def make_request(url, data=None, need_auth=None):
     else:
             return response
 
-formatter = TextFormatter.TextFormatter((
-    {'width': 17},
-    {'width': 40, 'margin': 4},
-    {'width': 25, 'margin': 4}, ))
-
 def print_tweet(tweet):
     """ Take an element of the JSON object and pretty-print it """
     return tweet['user']['name'] + ": " + tweet['text'] +"\n" + tweet['created_at'] + " in reply to " + str(tweet['in_reply_to_user_id']) + "\n"
-
-def public():
-    """ Show the public timeline """
-    if options.timeline:
-        url = "http://twitter.com/statuses/public_timeline.json"
-        response = make_request(url)
-        print response.read()
 
 def store_login(username, password):
     config_file = open(config_path, 'w')
@@ -196,18 +182,20 @@ def tweet(status):
         print "Your tweet is " + str(length - 160) + " characters too long."
 
 def format_tweets(tweets):
-    """ Takes a JSON object (or a string) and pretty prints it. """
+    """ Takes Twitter's JSON response and pretty prints it. """
+    formatter = TextFormatter.TextFormatter((
+        {'width': 17},
+        {'width': 40, 'margin': 4},
+        {'width': 25, 'margin': 4}, ))
     output = str()
     for tweet in tweets:
-        output += tweet['user']['screen_name'] + "\t"
-        output += tweet['text'] + "\t"
-        output += tweet['created_at'] + "\n\n"
+        output += "\n" + formatter.compose((tweet['user']['screen_name'], tweet['text'], tweet['created_at'],))
     return output
 
-# Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter uses
-# and convert that to time since epoch in seconds.
+# Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter provides and convert
+# that to time since epoch in seconds.
 def parse_twitter_date(timestamp):
-        return int(time.mktime(time.strptime(timestamp, "%a %b %d %H:%M:%S +0000 %Y")))
+    return int(time.mktime(time.strptime(timestamp, "%a %b %d %H:%M:%S +0000 %Y")))
 
 # Take time in seconds and convert to minutes, hours, seconds as appropriate.
 # Let this take either the string or the seconds, still the same clean format.
@@ -237,12 +225,14 @@ def get_friends_timeline():
 
 def get_user_timeline(user):
     """ Get a user's timeline """
+    print user_timeline_url + user + ".json"
     timeline = make_request(user_timeline_url + user + ".json")
-    print user
-    print timeline
-    tweets = simplejson.load(timeline)
-    print ">>> Printing user timeline"
-    print format_tweets(tweets) # Send the text out to be pretty printed
+    if timeline:
+        tweets = simplejson.load(timeline)
+        print ">>> Printing user timeline"
+        print format_tweets(tweets) # Send the text out to be pretty printed
+    else:
+        print ">>> Error fetching user's timeline."
 
 
 # With a straggler argument, two things could be happening. Either we are trying

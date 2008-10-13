@@ -23,13 +23,17 @@ import ConfigParser
 from pprint import pprint
 
 # Set the location for the configfile.
-config_path = os.path.expanduser('~/.tweetsrc')
+CONFIG_PATH = os.path.expanduser('~/.tweetsrc')
+
+# Width settings
+USERNAME_COLUMNS = 15
+DATE_COLUMNS = 15
 
 # The API urls
-update_url = "http://twitter.com/statuses/update.json"
-friends_timeline_url = "http://twitter.com/statuses/friends_timeline.json"
+UPDATE_URL = "http://twitter.com/statuses/update.json"
+FRIENDS_TIMELINE_URL = "http://twitter.com/statuses/friends_timeline.json"
 # This one must be suffixed with usernamexyz.json
-user_timeline_url = "http://twitter.com/statuses/user_timeline/"
+USER_TIMELINE_URL = "http://twitter.com/statuses/user_timeline/"
 
 
 # Set up an OptionParser with some options and set the usage text.
@@ -103,18 +107,17 @@ def terminal_width():
 def set_column_widths():
     """ Set output column width according to with of terminal. """
     width = terminal_width()
-    if  os.path.isfile(config_path) == True: # We have a config file
-        config_file = open(config_path, 'r')
+    if  os.path.isfile(CONFIG_PATH) == True: # We have a config file
+        config_file = open(CONFIG_PATH, 'r')
         f = ConfigParser.ConfigParser()
-        f.read(config_path)
+        f.read(CONFIG_PATH)
         left = f.get('output', 'left')
         middle = f.get('output', 'middle')
         right = f.get('output', 'right')
-        left = width * (1/float(left))
-        middle = width * (1/float(middle))
-        right = width * (1/float(right))
         config_file.close()
-        return (left, middle, right)
+        left, middle, right = int(left) / 100.0, int(middle) / 100.0, \
+            int(right) / 100.0 # Convert to percentage values
+        return (int(left*width), int(middle*width), int(right*width))
 
 
 def make_request(url, data=None, need_auth=None):
@@ -143,7 +146,7 @@ def print_tweet(tweet):
     return tweet['user']['name'] + ": " + tweet['text'] +"\n" + tweet['created_at'] + " in reply to " + str(tweet['in_reply_to_user_id']) + "\n"
 
 def store_login(username, password):
-    config_file = open(config_path, 'w')
+    config_file = open(CONFIG_PATH, 'w')
     f = ConfigParser.ConfigParser()
     f.add_section('authentication')
     f.set('authentication','username', options.username)
@@ -159,7 +162,7 @@ def store_login(username, password):
 
 def get_login():
     """ A function to take care of extracting l/p with logic """
-    if os.path.isfile(config_path) == False: # No config file
+    if os.path.isfile(CONFIG_PATH) == False: # No config file
         if options.username and options.password: # Command line options
             print ">>> Username and password specified on command line. Saving to .tweetsrc."
             return store_login(options.username, options.password)
@@ -168,7 +171,7 @@ def get_login():
         else: # No command line options
             print ">>> No username and password specified and no config file available. No tweet."
             return False;
-    elif  os.path.isfile(config_path) == True: # We have a config file
+    elif  os.path.isfile(CONFIG_PATH) == True: # We have a config file
         if options.username and options.password: # With command line options
             print ">>> Username and password specified on command line, overriding .tweetsrc"
             return { 'username': options.username, 'password': options.password }
@@ -176,9 +179,9 @@ def get_login():
             print ">>> You must provide both a login and a password, or neither."
         else:
             print ">>> Reading username and password from .tweetsrc"
-            config_file = open(config_path, 'r')
+            config_file = open(CONFIG_PATH, 'r')
             f = ConfigParser.ConfigParser()
-            f.read(config_path)
+            f.read(CONFIG_PATH)
             username = f.get('authentication', 'username')
             password = f.get('authentication', 'password')
             config_file.close()
@@ -190,7 +193,7 @@ def tweet(status):
     """ Tweet! (Update user's status on Twitter.com) """
     if len(status) <= 160:
         data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
-        response = make_request(update_url, data, True)
+        response = make_request(UPDATE_URL, data, True)
         if response:
             output = response.read() # This captures it but also makes the tweet happen
             print output
@@ -225,10 +228,11 @@ def unescape(text):
 
 def format_tweets(tweets):
     """ Takes Twitter's JSON response and pretty prints it. """
+    left, middle, right = set_column_widths()
     formatter = TextFormatter.TextFormatter((
-        {'width': 17},
-        {'width': 40, 'margin': 4},
-        {'width': 25, 'margin': 4}, ))
+        {'width': left},
+        {'width': middle, 'margin': 4},
+        {'width': right, 'margin': 4}, ))
     output = str()
     for tweet in tweets:
         output += "\n" + formatter.compose((tweet['user']['screen_name'], tweet['text'], tweet['created_at'],))
@@ -261,14 +265,14 @@ def get_username(userid):
 
 def get_friends_timeline():
     """ Get a user's friends timeline """
-    response = make_request(friends_timeline_url, need_auth=True)
+    response = make_request(FRIENDS_TIMELINE_URL, need_auth=True)
     json = simplejson.load(response)
     return format_tweets(json)
 
 def get_user_timeline(user):
     """ Get a user's timeline """
-    print user_timeline_url + user + ".json"
-    timeline = make_request(user_timeline_url + user + ".json")
+    print USER_TIMELINE_URL + user + ".json"
+    timeline = make_request(USER_TIMELINE_URL + user + ".json")
     if timeline:
         tweets = simplejson.load(timeline)
         print ">>> Printing user timeline"

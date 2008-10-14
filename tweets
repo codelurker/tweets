@@ -15,12 +15,12 @@ import htmlentitydefs
 import optparse
 import urllib
 import urllib2
-import TextFormatter
-import simplejson
 import datetime
 import time
 import ConfigParser
 from pprint import pprint
+import simplejson
+import TextFormatter
 
 # Set the location for the configfile
 config_path = os.path.expanduser('~/.tweetsrc')
@@ -78,6 +78,7 @@ parser.add_option("-l", "--list", help="Display your friends timeline, or specif
 #                raise NoSectionError(section)
 #        sectdict[self.optionxform(option)] = comment_character + value
 
+
 def terminal_width():
     """Return estimated terminal width."""
     # Thanks to gutworth in #python on Freenode
@@ -99,6 +100,7 @@ def terminal_width():
         width = 80
 
     return width
+
 
 def set_column_widths():
     """ Set output column width according to with of terminal. """
@@ -138,9 +140,11 @@ def make_request(url, data=None, need_auth=None):
     else:
             return response
 
+
 def print_tweet(tweet):
     """ Take an element of the JSON object and pretty-print it """
     return tweet['user']['name'] + ": " + tweet['text'] +"\n" + tweet['created_at'] + " in reply to " + str(tweet['in_reply_to_user_id']) + "\n"
+
 
 def store_login(username, password):
     config_file = open(config_path, 'w')
@@ -156,6 +160,7 @@ def store_login(username, password):
     f.write(config_file)
     config_file.close()
     return { 'username': options.username, 'password': options.password }
+
 
 def get_login():
     """ A function to take care of extracting l/p with logic """
@@ -186,6 +191,7 @@ def get_login():
     else:
         print "Another combo altogether?"
 
+
 def tweet(status):
     """ Tweet! (Update user's status on Twitter.com) """
     if len(status) <= 160:
@@ -200,6 +206,7 @@ def tweet(status):
     else:
         length = len(status)
         print "Your tweet is " + str(length - 160) + " characters too long."
+
 
 def unescape(text):
     """ Quickly decode HTML character encodings """
@@ -224,6 +231,7 @@ def unescape(text):
         return text # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
+
 def format_tweets(tweets):
     """ Takes Twitter's JSON response and pretty prints it. """
     formatter = TextFormatter.TextFormatter((
@@ -234,6 +242,7 @@ def format_tweets(tweets):
     for tweet in tweets:
         output += "\n" + formatter.compose((tweet['user']['screen_name'], tweet['text'], tweet['created_at'],))
     return unescape(output)
+
 
 # Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter provides and convert
 # that to time since epoch in seconds.

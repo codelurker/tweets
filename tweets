@@ -5,8 +5,8 @@
 # 3. Use password prompt instead of using command line
 # 4. Set timeout for make_request, so it doesn't just go on and on.
 # 5. Why doesn't it save my l/p?
-# 6. Redo the whole thing with Twitter.py (branch)
-# 7. Redo the whole thing in ncurser (branch)
+# 6. Redo the whole thing with Twitter.py API (branch)
+# 7. Redo the whole thing in ncurses (branch)
 
 import sys
 import os
@@ -22,7 +22,7 @@ import time
 import ConfigParser
 from pprint import pprint
 
-# Set the location for the configfile.
+# Set the location for the configfile
 config_path = os.path.expanduser('~/.tweetsrc')
 
 # The API urls
@@ -189,7 +189,8 @@ def get_login():
 def tweet(status):
     """ Tweet! (Update user's status on Twitter.com) """
     if len(status) <= 160:
-        data = "status=" + urllib.quote_plus(status) # Encode the output for use as POST
+        values = {'status': status, 'source': 'tweetspy'}
+        data = urllib.urlencode(values)
         response = make_request(update_url, data, True)
         if response:
             output = response.read() # This captures it but also makes the tweet happen
@@ -239,6 +240,7 @@ def format_tweets(tweets):
 def parse_twitter_date(timestamp):
     return int(time.mktime(time.strptime(timestamp, "%a %b %d %H:%M:%S +0000 %Y")))
 
+
 # Take time in seconds and convert to minutes, hours, seconds as appropriate.
 # Let this take either the string or the seconds, still the same clean format.
 # Figure out how to handle plural vs. singular units
@@ -254,10 +256,12 @@ def format_time(seconds):
         else:
                 return seconds
 
+
 def get_username(userid):
         response_file = make_request("http://twitter.com/users/show/" + str(userid) + ".json")
         response_parsed = simplejson.load(response_file)
         return response_parsed['name']
+
 
 def get_friends_timeline():
     """ Get a user's friends timeline """
@@ -265,9 +269,9 @@ def get_friends_timeline():
     json = simplejson.load(response)
     return format_tweets(json)
 
+
 def get_user_timeline(user):
     """ Get a user's timeline """
-    print user_timeline_url + user + ".json"
     timeline = make_request(user_timeline_url + user + ".json")
     if timeline:
         tweets = simplejson.load(timeline)
@@ -289,4 +293,4 @@ elif options.list:
     print ">>> Getting your friends timeline..."
     print get_friends_timeline()
 
-# vim: expandtab sw=4 ts=4 sts=4
+# vim: expandtab sw=4 ts=4 sts=4:

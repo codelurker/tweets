@@ -1,0 +1,6 @@
+TODO:
+* Figure out how to use subprocess to go to an editor and use that for the tweet
+* Use password prompt instead of using command line
+* Set timeout for make_request, so it doesn't just go on and on.
+* Redo the whole thing with Twitter.py API (branch)
+* Redo the whole thing in ncurses (branch)

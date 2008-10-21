@@ -1,0 +1,57 @@
+Tweets by Alex Kahn (alexanderkahn@gmail.com)
+1. Introduction
+2. Dependencies
+3. Usage
+4. Notes
+5. License
+
+1. Introduction
+
+Tweets is a command-line client for Twitter.com written in Python. It supports
+viewing a user's friends timeline, user timelines, and updating a user's status.
+It outputs this data neatly, and stores account information for updating 
+without having to enter a username and password each time.
+
+2. Dependencies
+
+Tweets is written in Python, so you must have Python installed in order to use
+it. Tweets also requires the simplejson module for Python, for parsing the
+JavaScript Object Notation (JSON) data that Twitter.com returns. This module is
+available at http://pypi.python.org/pypi/simplejson and is included in the
+standard library of Python 2.6. It is also available through package managers 
+such as Portage and MacPorts.
+
+3. Usage
+
+Using Tweets is simple. To view a user's timeline:
+$ tweets -l xyzuser
+Where xyzuser is a username whose timeline you would like to view.
+
+To view your friends timeline:
+$ tweets -u myusername -p mypassword -l
+Where myusername and mypassword correspond to the username and password for
+your account on Twitter.com. This will store your account information in 
+~/.tweetsrc
+
+To update your status:
+$ tweets 'Writing the README file for tweets'
+Note that using double quotes will allow shell expansion of $, !, and other
+special characters, so in most cases, single quotes are preferable.
+
+
+4. Notes
+Tweets was written by Alexander Kahn (alexanderkahn@gmail.com). Thank you to
+everyone who helped me in this process, including users of #python on 
+irc.freenode.net. Thanks to Stuart Colville (http://muffinresearch.co.uk/archives/2007/03/24/tweetypy-python-based-cli-client-for-twitter/),
+author of TweetyPy, for inspiration, and to Hamish Lawson for TextFormatter.py 
+(http://www.faqts.com/knowledge_base/view.phtml/aid/4517).
+
+Future versions of Tweets will make use of the Twitter.py API module.
+
+If you'd like to contribute code or ideas, fork or clone and file a pull 
+request at GitHub (http://url) or contact me at alexanderkahn@gmail.com.
+
+5. License
+Tweets is licensed under the GNU General Public License (GPL) Version 3. See
+LICENSE to read the GPLv3 in full.
+

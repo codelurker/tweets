@@ -1,12 +1,4 @@
-#!/usr/bin/python
-# TODO:
-# 1. Figure out how to use subprocess to go to an editor and use that for the tweet
-# 2. Check how long the message is. 
-# 3. Use password prompt instead of using command line
-# 4. Set timeout for make_request, so it doesn't just go on and on.
-# 5. Why doesn't it save my l/p?
-# 6. Redo the whole thing with Twitter.py API (branch)
-# 7. Redo the whole thing in ncurses (branch)
+#!/usr/bin/env python
 
 import sys
 import os
@@ -38,10 +30,10 @@ USER_TIMELINE_URL = "http://twitter.com/statuses/user_timeline/"
 
 
 # Set up an OptionParser with some options and set the usage text.
-usage = "Simply enter %prog to begin editing an update in $TWEET_EDITOR. If $TWEET_EDITOR is not available, $EDITOR will be used. Alternately, specify your update as an argument on the command line.\n"
-usage += 'Use the "-l" option to dislpay your friends timeline, or specify "-l USER" for a particular user\'s timeline.' + "\n"
-usage += "pytweet [-u USERNAME] [-p password] [UPDATE]\n"
-usage += "pytweet -l [USER]"
+usage = "tweets [-u USERNAME] [-p PASSWORD] [UPDATE]\n"
+usage += "tweets [UPDATE] (once you have run the previous command) \n"
+usage += "tweets -l [USER]"
+
 parser = optparse.OptionParser(usage)
 parser.add_option("-u", "--username", help="Your username or email address on Twitter.com",
             action="store", dest="username")

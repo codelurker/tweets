@@ -7,8 +7,8 @@
 # 5. Why doesn't it save my l/p?
 # 6. Redo the whole thing with Twitter.py API (branch)
 # 7. Redo the whole thing in ncurses (branch)
+# 8. Change the OptParse settings so that something sane happens with no args/options
 
-import sys
 import os
 import re
 import htmlentitydefs
@@ -27,7 +27,7 @@ CONFIG_PATH = os.path.expanduser('~/.tweetsrc')
 
 # Width settings
 USERNAME_COLUMNS = 15
-DATE_COLUMNS = 15
+DATE_COLUMNS = 25
 MARGIN = 4
 
 # The API urls
@@ -113,6 +113,7 @@ def set_middle_width():
     # Use any available space for the middle column
     middle_column = width - MARGIN - MARGIN - USERNAME_COLUMNS - DATE_COLUMNS
     return middle_column
+
 
 def make_request(url, data=None, need_auth=None):
     req = urllib2.Request(url, data)
@@ -236,13 +237,13 @@ def format_tweets(tweets):
         {'width': DATE_COLUMNS, 'margin': MARGIN}, ))
     output = str()
     for tweet in tweets:
-        output += "\n" + formatter.compose((tweet['user']['screen_name'], tweet['text'], tweet['created_at'],))
+        output += "\n" + formatter.compose((tweet['user']['screen_name'], \
+			tweet['text'], str(parse_twitter_date(tweet['created_at']))))
     return unescape(output)
 
 
-# Take the "Sun Sep 14 19:24:43 +0000 2008" that twitter provides and convert
-# that to time since epoch in seconds.
 def parse_twitter_date(timestamp):
+    """ Converts Twitter's date into Unix timestamp """
     return int(time.mktime(time.strptime(timestamp, "%a %b %d %H:%M:%S +0000 %Y")))
 
 

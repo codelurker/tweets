@@ -41,39 +41,6 @@ parser.add_option("-l", "--list", help="Display your friends timeline, or specif
 (options, args) = parser.parse_args()
 
 
-# # Testing for an editor environment variable
-#if os.environ.__contains__("TWEET_EDITOR"):
-#        print "there's a tweet editor"
-#elif os.environ.__contains__("EDITOR"):
-#    print "generic editor"
-#else:
-#    print "no editor"
-
-
-#TEMPDIR = os.environ['TMPDIR']
-#print TEMPDIR
-
-
-#If there's no tweets_update in TMPDIR, open the editor process. If it's there,
-#fire it up. After the tweet, if it is successful, delete the file. If the
-#tweet is not successful, leave the file so that the next invocation of tweets
-#will fire it up.
-
-#Should I do this with the tempfile module to let Python handle all of it or
-#should I name the file explicitly and keep it in a TMPDIR.
-
-#class MyConfigParser(ConfigParser.ConfigParser):
-#    def set_comment(self, section, value, comment_character="#"):
-#        if not section or section == self.DEFAULTSECT:
-#            sectdict = self._defaults
-#        else:
-#            try:
-#                sectdict = self._sections[section]
-#            except KeyError:
-#                raise NoSectionError(section)
-#        sectdict[self.optionxform(option)] = comment_character + value
-
-
 def terminal_width():
     """Return estimated terminal width."""
     # Thanks to gutworth in #python on Freenode
